@@ -9,6 +9,7 @@ const { execSync } = require("child_process");
 
 // Optional parameters:
 // @raycast.icon 🪵
+// @raycast.description Convert a bulleted list of goals from the clipboard into a Markdown format suitable for my [Weekly](https://www.marcnitzsche.de/how-to-be-productive-when-you-dont-have-external-structure/#weekly-reflection).
 
 // Documentation:
 // @raycast.author remarcable
@@ -21,48 +22,52 @@ const indentationString = "    ";
 
 const lines = clipboardContent
   .split("\n")
-  .filter((line) => line.trim() !== "") // potentially also add lines that don't start with a dash/indentation => they're just categories
+  .filter((line) => line.trim() !== "") // TODO: potentially also filter lines that don't start with a dash/indentation => they're just categories
   .map((line) => {
+    const isIndented = line.startsWith(indentationString);
+    const lineWithoutDash = line.split("- ")[1].trim();
+
     return {
-      text: `${goalGradeTemplate} ${line.split("- ")[1].trim()}`,
-      indentation: line.startsWith(indentationString),
+      text: `${goalGradeTemplate} ${lineWithoutDash}`,
+      isSubgoal: isIndented,
     };
   })
   .reduce((acc, line) => {
-    if (line.indentation) {
-      // If the line is indented, it is a subgoal
-      const lastGoal = acc[acc.length - 1];
-
-      if (lastGoal) {
-        return [
-          ...acc.slice(0, -1),
-          {
-            ...lastGoal,
-            subgoals: [...lastGoal.subgoals, line.text.trim()],
-          },
-        ];
-      }
+    if (!line.isSubgoal) {
+      return [...acc, { goal: line.text, subgoals: [] }];
     }
 
-    // If the line is not indented, it is a main goal
-    return [...acc, { goal: line.text.trim(), subgoals: [] }];
+    const lastGoal = acc[acc.length - 1];
+
+    if (!lastGoal) {
+      throw new Error("No last goal found, this should not happen.");
+    }
+
+    return [
+      ...acc.slice(0, -1),
+      {
+        ...lastGoal,
+        subgoals: [...lastGoal.subgoals, line.text],
+      },
+    ];
   }, [])
   .map(({ goal, subgoals }) => {
     const goalText = `## ${goal}`;
+    const firstBulletPoint = "- [Add info]";
 
-    if (subgoals.length > 0) {
-      const subgoalsText = subgoals
-        .map((subgoal) => `${indentationString}- ${subgoal}`)
-        .join("\n");
+    if (!subgoals.length) {
       return `${goalText}
-- Subgoals:
-${subgoalsText}
-- x
+${firstBulletPoint}
 `;
     }
 
+    const subgoalsText = subgoals
+      .map((subgoal) => `${indentationString}- ${subgoal}`)
+      .join("\n");
     return `${goalText}
-- x
+- Subgoals:
+${subgoalsText}
+${firstBulletPoint}
 `;
   });
 
