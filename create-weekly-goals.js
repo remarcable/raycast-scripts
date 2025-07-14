@@ -27,6 +27,8 @@ const lines = clipboardContent
     const isIndented = line.startsWith(indentationString);
     const isNumbered = line.match(/\d+\.\s/);
 
+    // TODO: Potentially just replace this with a regex that matches the first dash and removes it?
+    // Could also use this for indentation removal/detection
     const lineWithoutDash = isNumbered ? line : line.split("- ")[1].trim();
 
     return {
