@@ -25,7 +25,9 @@ const lines = clipboardContent
   .filter((line) => line.trim() !== "") // TODO: potentially also filter lines that don't start with a dash/indentation => they're just categories
   .map((line) => {
     const isIndented = line.startsWith(indentationString);
-    const lineWithoutDash = line.split("- ")[1].trim();
+    const isNumbered = line.match(/\d+\.\s/);
+
+    const lineWithoutDash = isNumbered ? line : line.split("- ")[1].trim();
 
     return {
       text: `${goalGradeTemplate} ${lineWithoutDash}`,
